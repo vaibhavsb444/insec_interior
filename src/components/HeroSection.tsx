@@ -6,13 +6,27 @@ import { useHeroImages } from "@/hooks/useFirebaseData";
 const HeroSection = () => {
   const { data: images } = useHeroImages();
   const [current, setCurrent] = useState(0);
+  const [loaded, setLoaded] = useState<Record<number, boolean>>({});
 
   const hasImages = images && images.length > 0;
+
+  // ── Preload ALL images the moment the array arrives ──────────────────
+  useEffect(() => {
+    if (!hasImages) return;
+    images.forEach((img: { url: string }, i: number) => {
+      const image = new Image();
+      image.src = img.url;
+      image.onload = () => setLoaded((prev) => ({ ...prev, [i]: true }));
+    });
+  }, [hasImages, images]);
+
+  // ── 8 s per slide so visitors can actually appreciate the room ───────
+  const SLIDE_DURATION = 8000;
 
   const next = useCallback(() => {
     if (!hasImages) return;
     setCurrent((prev) => (prev + 1) % images.length);
-  }, [hasImages, images.length]);
+  }, [hasImages, images?.length]);
 
   const prev = () => {
     if (!hasImages) return;
@@ -21,7 +35,7 @@ const HeroSection = () => {
 
   useEffect(() => {
     if (!hasImages) return;
-    const timer = setInterval(next, 5000);
+    const timer = setInterval(next, SLIDE_DURATION);
     return () => clearInterval(timer);
   }, [next, hasImages]);
 
@@ -31,7 +45,6 @@ const HeroSection = () => {
         id="home"
         className="relative h-screen w-full overflow-hidden bg-charcoal flex items-center justify-center"
       >
-        {/* Animated loading shimmer */}
         <div className="flex flex-col items-center gap-4">
           <div className="w-12 h-[2px] bg-brass animate-pulse" />
           <div className="text-warm-white/40 text-xs tracking-[0.4em] uppercase font-light animate-pulse">
@@ -45,74 +58,65 @@ const HeroSection = () => {
   return (
     <section id="home" className="relative h-[100svh] w-full overflow-hidden">
 
-      {/* ─── Background Images ───────────────────────────────────────── */}
+      {/* ── Background Images ─────────────────────────────────────────── */}
       <AnimatePresence mode="wait">
         <motion.div
           key={current}
-          initial={{ opacity: 0, scale: 1.08 }}
+          initial={{ opacity: 0, scale: 1.06 }}
           animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 1.04 }}
-          transition={{ duration: 1.4, ease: [0.25, 0.46, 0.45, 0.94] }}
+          exit={{ opacity: 0, scale: 1.03 }}
+          transition={{ duration: 0.9, ease: [0.25, 0.46, 0.45, 0.94] }}
           className="absolute inset-0"
         >
+          {/* Shimmer placeholder until image byte-decodes */}
+          {!loaded[current] && (
+            <div className="absolute inset-0 bg-charcoal animate-pulse z-10" />
+          )}
           <img
             src={images[current]?.url}
             alt={images[current]?.title || "Interior design showcase"}
-            /*
-              KEY FIX: object-position shifts on mobile so landscape images
-              show their most interesting (center) region, not just the edges.
-              On desktop: cover + center  →  standard cinematic feel.
-              On mobile:  cover + center 30% (slightly above center)
-              The inline style is overridden per breakpoint via the className.
-            */
-            className="w-full h-full object-cover object-center md:object-center"
-            style={{
-              /* Nudges the crop point upward on portrait viewports so
-                 typical interior shots (showing the room, not the ceiling)
-                 look great on phones without any JS */
-              objectPosition: "center 35%",
-            }}
+            fetchPriority={current === 0 ? "high" : "auto"}
+            decoding="async"
+            className="w-full h-full object-cover"
+            style={{ objectPosition: "center 35%" }}
+            onLoad={() => setLoaded((prev) => ({ ...prev, [current]: true }))}
           />
         </motion.div>
       </AnimatePresence>
 
-      {/* ─── Cinematic Overlay (richer gradient than a flat rgba) ────── */}
+      {/* ── Cinematic Overlay ─────────────────────────────────────────── */}
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
           background: `
-            linear-gradient(
-              to bottom,
+            linear-gradient(to bottom,
               rgba(10,8,6,0.15) 0%,
               rgba(10,8,6,0.05) 30%,
               rgba(10,8,6,0.45) 70%,
-              rgba(10,8,6,0.80) 100%
-            ),
-            linear-gradient(
-              to right,
+              rgba(10,8,6,0.80) 100%),
+            linear-gradient(to right,
               rgba(10,8,6,0.30) 0%,
-              transparent 50%
-            )
+              transparent 50%)
           `,
         }}
       />
 
-      {/* ─── Decorative corner marks (desktop only) ──────────────────── */}
+      {/* ── Decorative corner marks (desktop only) ────────────────────── */}
       <div className="hidden md:block absolute top-8 left-8 w-12 h-12 border-t border-l border-brass/40" />
       <div className="hidden md:block absolute top-8 right-8 w-12 h-12 border-t border-r border-brass/40" />
       <div className="hidden md:block absolute bottom-20 left-8 w-12 h-12 border-b border-l border-brass/40" />
       <div className="hidden md:block absolute bottom-20 right-8 w-12 h-12 border-b border-r border-brass/40" />
 
-      {/* ─── Slide progress bar (top edge) ───────────────────────────── */}
+      {/* ── Progress bar synced to SLIDE_DURATION ─────────────────────── */}
       <motion.div
         key={`bar-${current}`}
         className="absolute top-0 left-0 h-[2px] bg-brass z-10"
         initial={{ width: "0%" }}
         animate={{ width: "100%" }}
-        transition={{ duration: 5, ease: "linear" }}
+        transition={{ duration: SLIDE_DURATION / 1000, ease: "linear" }}
       />
 
-      {/* ─── Content Layer ────────────────────────────────────────────── */}
+      {/* ── Content Layer ─────────────────────────────────────────────── */}
       <div className="absolute inset-0 flex items-center justify-center md:items-end md:justify-start">
         <div className="w-full px-6 pb-0 md:px-16 md:pb-24 lg:px-24 max-w-5xl">
           <AnimatePresence mode="wait">
@@ -124,7 +128,6 @@ const HeroSection = () => {
               transition={{ duration: 0.65, ease: [0.25, 0.46, 0.45, 0.94] }}
               className="text-center md:text-left"
             >
-              {/* Eyebrow line + label */}
               <motion.div
                 className="flex items-center gap-3 justify-center md:justify-start mb-5"
                 initial={{ opacity: 0, x: -20 }}
@@ -138,17 +141,15 @@ const HeroSection = () => {
                 <div className="h-[1px] w-8 bg-brass" />
               </motion.div>
 
-              {/* Headline */}
               <motion.h1
                 className="font-heading text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold text-warm-white leading-[1.08] mb-5 md:mb-6"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.25, duration: 0.6 }}
               >
-                {images[current]?.title || "Defining the Art of\nModern Living"}
+                {images[current]?.title || "Defining the Art of Modern Living"}
               </motion.h1>
 
-              {/* Sub-copy */}
               <motion.p
                 className="text-warm-white/70 text-sm sm:text-base md:text-lg font-light max-w-xl mx-auto md:mx-0 mb-8 md:mb-10 leading-relaxed"
                 initial={{ opacity: 0 }}
@@ -160,7 +161,6 @@ const HeroSection = () => {
                 <span className="text-brass/80">Pan India service.</span>
               </motion.p>
 
-              {/* CTAs */}
               <motion.div
                 className="flex flex-col sm:flex-row gap-3 justify-center md:justify-start"
                 initial={{ opacity: 0, y: 16 }}
@@ -171,15 +171,7 @@ const HeroSection = () => {
                   onClick={() =>
                     document.getElementById("contact")?.scrollIntoView({ behavior: "smooth" })
                   }
-                  className="
-                    relative overflow-hidden
-                    bg-brass text-primary-foreground
-                    px-8 py-3.5 md:px-10 md:py-4
-                    text-[11px] md:text-xs font-semibold tracking-[0.2em] uppercase rounded
-                    transition-all duration-300
-                    hover:bg-brass-dark hover:shadow-[0_8px_32px_rgba(0,0,0,0.4)]
-                    active:scale-[0.97]
-                  "
+                  className="relative overflow-hidden bg-brass text-primary-foreground px-8 py-3.5 md:px-10 md:py-4 text-[11px] md:text-xs font-semibold tracking-[0.2em] uppercase rounded transition-all duration-300 hover:bg-brass-dark hover:shadow-[0_8px_32px_rgba(0,0,0,0.4)] active:scale-[0.97]"
                 >
                   Consult Now
                 </button>
@@ -187,15 +179,7 @@ const HeroSection = () => {
                   onClick={() =>
                     document.getElementById("portfolio")?.scrollIntoView({ behavior: "smooth" })
                   }
-                  className="
-                    border border-warm-white/30 text-warm-white
-                    px-8 py-3.5 md:px-10 md:py-4
-                    text-[11px] md:text-xs font-semibold tracking-[0.2em] uppercase rounded
-                    backdrop-blur-sm
-                    transition-all duration-300
-                    hover:bg-warm-white/10 hover:border-warm-white/60
-                    active:scale-[0.97]
-                  "
+                  className="border border-warm-white/30 text-warm-white px-8 py-3.5 md:px-10 md:py-4 text-[11px] md:text-xs font-semibold tracking-[0.2em] uppercase rounded backdrop-blur-sm transition-all duration-300 hover:bg-warm-white/10 hover:border-warm-white/60 active:scale-[0.97]"
                 >
                   View Portfolio
                 </button>
@@ -205,22 +189,18 @@ const HeroSection = () => {
         </div>
       </div>
 
-      {/* ─── Slide Controls ───────────────────────────────────────────── */}
+      {/* ── Slide Controls ────────────────────────────────────────────── */}
       <div className="absolute bottom-6 md:bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-4 z-10">
         <button
           onClick={prev}
-          className="
-            text-warm-white/50 hover:text-warm-white
-            transition-all duration-200 hover:scale-110
-            p-1
-          "
+          className="text-warm-white/50 hover:text-warm-white transition-all duration-200 hover:scale-110 p-1"
           aria-label="Previous slide"
         >
           <ChevronLeft size={20} />
         </button>
 
         <div className="flex items-center gap-2">
-          {images.map((_, i) => (
+          {images.map((_: unknown, i: number) => (
             <button
               key={i}
               onClick={() => setCurrent(i)}
@@ -228,19 +208,14 @@ const HeroSection = () => {
               className="relative h-[3px] rounded-full overflow-hidden transition-all duration-500"
               style={{ width: i === current ? 32 : 16 }}
             >
-              {/* track */}
-              <span
-                className="absolute inset-0 rounded-full"
-                style={{ background: "rgba(255,255,255,0.25)" }}
-              />
-              {/* fill */}
+              <span className="absolute inset-0 rounded-full" style={{ background: "rgba(255,255,255,0.25)" }} />
               {i === current && (
                 <motion.span
                   key={`fill-${current}`}
                   className="absolute inset-0 rounded-full bg-brass"
                   initial={{ scaleX: 0, originX: 0 }}
                   animate={{ scaleX: 1 }}
-                  transition={{ duration: 5, ease: "linear" }}
+                  transition={{ duration: SLIDE_DURATION / 1000, ease: "linear" }}
                 />
               )}
             </button>
@@ -249,18 +224,14 @@ const HeroSection = () => {
 
         <button
           onClick={next}
-          className="
-            text-warm-white/50 hover:text-warm-white
-            transition-all duration-200 hover:scale-110
-            p-1
-          "
+          className="text-warm-white/50 hover:text-warm-white transition-all duration-200 hover:scale-110 p-1"
           aria-label="Next slide"
         >
           <ChevronRight size={20} />
         </button>
       </div>
 
-      {/* ─── Slide counter (desktop only) ────────────────────────────── */}
+      {/* ── Slide counter (desktop only) ──────────────────────────────── */}
       <div className="hidden md:flex absolute right-8 bottom-10 flex-col items-center gap-2 z-10">
         <span className="text-warm-white text-sm font-light tabular-nums">
           {String(current + 1).padStart(2, "0")}

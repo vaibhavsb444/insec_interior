@@ -156,13 +156,13 @@ const ContactSection = () => {
               <div className="space-y-6">
                 
                 {/* Phone / WhatsApp */}
-                <div className="flex items-start gap-4 group cursor-pointer" onClick={() => window.open('https://wa.me/918762579444', '_blank')}>
+                <div className="flex items-start gap-4 group cursor-pointer" onClick={() => window.open('https://wa.me/918788716351', '_blank')}>
                   <div className="w-12 h-12 rounded-full bg-brass/10 flex items-center justify-center flex-shrink-0 group-hover:bg-brass/20 transition-colors">
                     <Phone className="text-brass" size={20} />
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground mb-1">Call / WhatsApp</p>
-                    <p className="text-foreground font-medium group-hover:text-brass transition-colors">+91 87625 79444</p>
+                    <p className="text-foreground font-medium group-hover:text-brass transition-colors">+91 8788716351</p>
                   </div>
                 </div>
 
@@ -178,13 +178,13 @@ const ContactSection = () => {
                 </div>
 
                 {/* Instagram */}
-                <div className="flex items-start gap-4 group cursor-pointer" onClick={() => window.open('https://instagram.com/insec.77', '_blank')}>
+                <div className="flex items-start gap-4 group cursor-pointer" onClick={() => window.open('https://instagram.com/insec_interior', '_blank')}>
                   <div className="w-12 h-12 rounded-full bg-brass/10 flex items-center justify-center flex-shrink-0 group-hover:bg-brass/20 transition-colors">
                     <Instagram className="text-brass" size={20} />
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground mb-1">Follow Us</p>
-                    <p className="text-foreground font-medium group-hover:text-brass transition-colors">@insec.77</p>
+                    <p className="text-foreground font-medium group-hover:text-brass transition-colors">@insec_interior</p>
                   </div>
                 </div>
 
